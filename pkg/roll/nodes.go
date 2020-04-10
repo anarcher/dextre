@@ -91,7 +91,7 @@ func Nodes(kubectl *kubernetes.Client, instanceGroup InstanceGroup, cluster stri
 		ui.Print(fmt.Sprintf("[✓] %s is now in state: Ready", newNode.Name), true)
 
 		// Drain the Node
-		drain.Run(kubectl, node.Name, 30, true, false, verbose)
+		drain.Run(kubectl, node.Name, 30, true, false, awsRegion, verbose)
 
 		// Get the AWS InstanceId
 		instanceID, err := client.GetInstanceId(node.Name)

@@ -12,6 +12,7 @@ func nodesCommand(kubectl *kubernetes.Client, verbose *bool) *cobra.Command {
 	var instanceGroupAsgLabel string
 	var instanceGroup string
 	var cluster string
+	var awsRegion string
 
 	c := &cobra.Command{
 		Use:   "nodes",
@@ -23,7 +24,7 @@ func nodesCommand(kubectl *kubernetes.Client, verbose *bool) *cobra.Command {
 				AutoScalingGroupLabel: instanceGroupAsgLabel,
 				Name:                  instanceGroup,
 			}
-			return roll.Nodes(kubectl, ig, cluster, *verbose)
+			return roll.Nodes(kubectl, ig, cluster, awsRegion, *verbose)
 		},
 	}
 	c.Flags().StringVar(&instanceGroupNodeLabel, "instance-group-node-label", "kops.k8s.io/instancegroup", "node label for instance group")
@@ -34,6 +35,7 @@ func nodesCommand(kubectl *kubernetes.Client, verbose *bool) *cobra.Command {
 	c.MarkFlagRequired("instance-group")
 	c.Flags().StringVar(&label, "label", "", "label of the nodes to be rolled")
 	c.Flags().StringVar(&cluster, "cluster", "", "the name of the kops cluster")
+	c.Flags().StringVar(&awsRegion, "aws-region", "us-west-1", "the region to use")
 	c.MarkFlagRequired("cluster")
 
 	return c
