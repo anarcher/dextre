@@ -13,7 +13,7 @@ import (
 )
 
 //Run: executes the drain command
-func Nodes(kubectl *kubernetes.Client, instanceGroup InstanceGroup, cluster, awsRegion string, verbose bool) error {
+func Nodes(kubectl *kubernetes.Client, instanceGroup InstanceGroup, cluster string, awsRegion string, verbose bool) error {
 
 	spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 
