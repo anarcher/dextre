@@ -43,7 +43,7 @@ func (c *Client) TerminateInstanceDecrementDesiredCapacity(instanceID string) er
 	return nil
 }
 
-func (c *Client) GetAutoScalingGroup(instanceGroup, cluster string) (AutoScalingGroupStruct, error) {
+func (c *Client) GetAutoScalingGroup(instanceGroupLabel, instanceGroup, cluster string) (AutoScalingGroupStruct, error) {
 	auto := autoscaling.New(c.Session)
 	input := &autoscaling.DescribeAutoScalingGroupsInput{}
 	asgs, err := auto.DescribeAutoScalingGroups(input)
@@ -59,7 +59,7 @@ func (c *Client) GetAutoScalingGroup(instanceGroup, cluster string) (AutoScaling
 				clusterMatch = true
 			}
 			// Is the label correct?
-			if (*t.Key == "k8s.io/cluster-autoscaler/node-template/label/kops.k8s.io/instancegroup") && (*t.Value == instanceGroup) {
+			if (*t.Key == instanceGroupLabel) && (*t.Value == instanceGroup) {
 				instanceGroupMatch = true
 			}
 		}
