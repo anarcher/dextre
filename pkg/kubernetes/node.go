@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 )
@@ -82,11 +82,12 @@ func (c *Client) WaitForNodeToTerminate(node v1.Node) error {
 	return nil
 }
 
-func (c *Client) IdentifyNewNode(nodes []v1.Node, instanceGroup string) (*v1.Node, error) {
+func (c *Client) IdentifyNewNode(nodes []v1.Node, instanceGroupLabel, instanceGroup string) (*v1.Node, error) {
 	watcher, err := c.clientset.CoreV1().Nodes().Watch(metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create Pod status listener")
 	}
+	defer watcher.Stop()
 
 	for {
 		e := <-watcher.ResultChan()
@@ -101,7 +102,7 @@ func (c *Client) IdentifyNewNode(nodes []v1.Node, instanceGroup string) (*v1.Nod
 		if e.Type == "ADDED" {
 			if !Contains(nodes, n) {
 				// Verify that the new node is of the correct type
-				if n.Labels["kops.k8s.io/instancegroup"] == instanceGroup {
+				if n.Labels[instanceGroupLabel] == instanceGroup {
 					return n, nil
 				} else {
 					// continue if the new node does match role or labels
@@ -110,8 +111,6 @@ func (c *Client) IdentifyNewNode(nodes []v1.Node, instanceGroup string) (*v1.Nod
 			}
 		}
 	}
-	watcher.Stop()
-	return nil, nil
 }
 
 func (c *Client) WaitForNewNodeToBeReady(node *v1.Node) error {

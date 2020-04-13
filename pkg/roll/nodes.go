@@ -77,7 +77,7 @@ func Nodes(kubectl *kubernetes.Client, instanceGroup InstanceGroup, cluster stri
 		ui.Print(fmt.Sprintf("[✓] Increasing DesiredCapacity of %s from %d nodes to %d nodes and DefaultCooldown to %d", asg.AutoScalingGroupName, asg.DesiredCapacity, asg.DesiredCapacity+1, 0), true)
 
 		// Wait and identify the new node
-		newNode, err := kubectl.IdentifyNewNode(nodes.Items, instanceGroup.Name)
+		newNode, err := kubectl.IdentifyNewNode(nodes.Items, instanceGroup.NodeLabel, instanceGroup.Name)
 		if err != nil {
 			return err
 		}
