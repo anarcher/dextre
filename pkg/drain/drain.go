@@ -14,6 +14,86 @@ import (
 //Run: executes the drain command
 func Run(kubectl *kubernetes.Client, nodeName string, gracePeriod time.Duration, skipValidation, nodeTermination bool, awsRegion string, verbose bool) error {
 
+	err := drain(kubectl, nodeName, gracePeriod, skipValidation, verbose)
+	if err != nil {
+		return err
+	}
+
+	if !nodeTermination {
+		return nil
+	}
+
+	keepDesiredCapacity := true
+	return terminateNode(awsRegion, nodeName, skipValidation, keepDesiredCapacity, verbose)
+}
+
+// RunWithDelete executes the drain command and deletes node
+func RunWithDelete(kubectl *kubernetes.Client, nodeName string, gracePeriod time.Duration, skipValidation, nodeTermination bool, awsRegion string, verbose bool) error {
+	err := drain(kubectl, nodeName, gracePeriod, skipValidation, verbose)
+	if err != nil {
+		return err
+	}
+
+	if !nodeTermination {
+		return nil
+	}
+	keepDesiredCapacity := false
+	return terminateNode(awsRegion, nodeName, skipValidation, keepDesiredCapacity, verbose)
+}
+
+func terminateNode(awsRegion, nodeName string, skipValidation, keepDesiredCapacity, verbose bool) error {
+	if !skipValidation {
+		fmt.Println("")
+		fmt.Printf("Do you want to continue and terminate the node? ")
+		ok, err := ui.AskForConfirmation()
+		if err != nil {
+			return err
+		}
+
+		// user stopped the flow
+		if !ok {
+			return nil
+		}
+	}
+
+	ui.Print("", verbose)
+	ui.PrintTitle("Node termination:\n", verbose)
+
+	// Create the client
+	client, err := dextreaws.NewClient(awsRegion)
+
+	if err != nil {
+		return err
+	}
+
+	instanceID, err := client.GetInstanceId(nodeName)
+	if err != nil {
+		return err
+	}
+
+	ui.Print(fmt.Sprintf("%-25s %s", "Private DNS:", nodeName), verbose)
+	ui.Print(fmt.Sprintf("%-25s %s", "Instance ID:", instanceID), verbose)
+
+	switch keepDesiredCapacity {
+	case true:
+		err := client.TerminateInstanceKeepDesiredCapacity(instanceID)
+		if err != nil {
+			return err
+		}
+	case false:
+		err := client.TerminateInstanceDecrementDesiredCapacity(instanceID)
+		if err != nil {
+			return err
+		}
+	}
+
+	ui.Print("\n", verbose)
+	ui.Print("[✓] Node has been terminated!\n", true)
+	return nil
+}
+
+// drain executes the drain command
+func drain(kubectl *kubernetes.Client, nodeName string, gracePeriod time.Duration, skipValidation, verbose bool) error {
 	// Find the node in the cluster
 	node, err := kubectl.GetNode(nodeName)
 	if err != nil {
@@ -76,49 +156,6 @@ func Run(kubectl *kubernetes.Client, nodeName string, gracePeriod time.Duration,
 	ui.Print("", verbose)
 	ui.Print(fmt.Sprintf("[✓] %d pods evicted!", len(systemPods)+len(regularPods)), true)
 
-	if !nodeTermination {
-		return nil
-	}
-
-	if !skipValidation {
-		fmt.Println("")
-		fmt.Printf("Do you want to continue and terminate the node? ")
-		ok, err := ui.AskForConfirmation()
-		if err != nil {
-			return err
-		}
-
-		// user stopped the flow
-		if !ok {
-			return nil
-		}
-	}
-
-	ui.Print("", verbose)
-	ui.PrintTitle("Node termination:\n", verbose)
-
-	// Create the client
-	client, err := dextreaws.NewClient(awsRegion)
-
-	if err != nil {
-		return err
-	}
-
-	instanceID, err := client.GetInstanceId(nodeName)
-	if err != nil {
-		return err
-	}
-
-	ui.Print(fmt.Sprintf("%-25s %s", "Private DNS:", nodeName), verbose)
-	ui.Print(fmt.Sprintf("%-25s %s", "Instance ID:", instanceID), verbose)
-
-	err = client.TerminateInstanceKeepDesiredCapacity(instanceID)
-	if err != nil {
-		return err
-	}
-
-	ui.Print("\n", verbose)
-	ui.Print("[✓] Node has been terminated!\n", true)
 	return nil
 }
 

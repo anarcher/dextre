@@ -13,7 +13,7 @@ func NewCommand(kubectl *kubernetes.Client, verbose *bool) *cobra.Command {
 	}
 	c.AddCommand(
 		nodesCommand(kubectl, verbose),
+		nodeCommand(kubectl, verbose),
 	)
-
 	return c
 }
